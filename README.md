@@ -1,3 +1,3 @@
-A link shortener, developed with Python.\n
-Still in development process...\n
+A link shortener, developed with Python.
+Still in development process...
 Stay tuned for updates!
