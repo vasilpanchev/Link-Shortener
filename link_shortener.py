@@ -6,6 +6,7 @@ from typing import Optional
 
 class Config():
     """A class for application configuration constants."""
+    SHORT_DOMAIN = "https://shortlinkdomain.com/"
     LINK_PATTERN = re.compile(
         r"^(https?:\/\/)?(www\.)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,24}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$"
     )
@@ -21,7 +22,7 @@ def generate_unique_link_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
-def generate_shortened_link(link: str) -> Optional[str]:
+def generate_shortened_link(link: str) -> str:
     """Generates a shortened link if the input is valid, else returns None."""
     if not validate_link(link):
         return "The provided link is not valid."
@@ -39,7 +40,7 @@ def generate_shortened_link(link: str) -> Optional[str]:
 
         with open("links.json", "w") as f:
             json.dump(data, f, indent=4)
-        result = f"Successfully generated shortened link: 'https://shortlinkdomain.com/{shortened_id}'"
+        result = f"Successfully generated shortened link: '{Config.SHORT_DOMAIN}{shortened_id}'"
 
     except Exception:
         result = "Shortened link couldn't be generated."
