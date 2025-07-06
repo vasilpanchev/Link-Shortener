@@ -1,3 +1,4 @@
+import json
 import uuid
 import re
 from typing import Optional
@@ -20,21 +21,36 @@ def generate_unique_link_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
-def get_shortened_link(link: str) -> Optional[str]:
+def generate_shortened_link(link: str) -> Optional[str]:
     """Generates a shortened link if the input is valid, else returns None."""
     if not validate_link(link):
-        return None
+        return "The provided link is not valid."
     try:
-        return f"short.lnk/{generate_unique_link_id()}"
+        try:
+            with open("links.json", "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {}
+
+        shortened_id = generate_unique_link_id()
+        while shortened_id in data.keys():
+            shortened_id = generate_unique_link_id()
+        data[shortened_id] = link
+
+        with open("links.json", "w") as f:
+            json.dump(data, f, indent=4)
+        result = f"Successfully generated shortened link: 'https://shortlinkdomain.com/{shortened_id}'"
+
     except Exception:
-        return None
+        result = "Shortened link couldn't be generated."
+
+    return result
 
 
 def main():
     print("Enter a URL to shorten (e.g., 'https://example.com'):")
     link = input().strip()
-    final_link = get_shortened_link(link)
-    print(final_link if final_link else "Invalid link provided or link generation failed.")
+    print(generate_shortened_link(link))
 
 
 if __name__ == "__main__":
