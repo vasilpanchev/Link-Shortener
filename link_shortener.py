@@ -32,7 +32,7 @@ def generate_unique_link_id() -> str:
     return unique_link_id
 
 
-def read_json_file(file: str) -> Dict[str: str]:
+def read_json_file(file: str) -> Dict[str, str]:
     try:
         with open(file, "r") as f:
             data = json.load(f)
@@ -42,7 +42,7 @@ def read_json_file(file: str) -> Dict[str: str]:
     return data
 
 
-def write_to_json_file(file: str, data: Dict[str: str]):
+def write_to_json_file(file: str, data: Dict[str, str]):
     with open(file, "w") as f:
         json.dump(data, f, indent=4)
 
