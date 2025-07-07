@@ -1,10 +1,10 @@
 import json
 import uuid
 import re
-from typing import Optional
+from typing import Optional, Dict
 
 
-class Config():
+class Config:
     """A class for application configuration constants."""
     SHORT_DOMAIN = "https://shortlinkdomain.com/"
     LINK_PATTERN = re.compile(
@@ -19,7 +19,32 @@ def validate_link(link: str) -> bool:
 
 def generate_unique_link_id() -> str:
     """Generates a short, URL unique ID (8 chars)."""
-    return uuid.uuid4().hex[:8]
+    try:
+        with open("links.json", "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        data = {}
+
+    existing_ids = set(data.keys())
+    unique_link_id = uuid.uuid4().hex[:8]
+    while unique_link_id in existing_ids:
+        unique_link_id = uuid.uuid4().hex[:8]
+    return unique_link_id
+
+
+def read_json_file(file: str) -> Dict[str: str]:
+    try:
+        with open(file, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        data = {}
+
+    return data
+
+
+def write_to_json_file(file: str, data: Dict[str: str]):
+    with open(file, "w") as f:
+        json.dump(data, f, indent=4)
 
 
 def generate_shortened_link(link: str) -> str:
@@ -27,19 +52,13 @@ def generate_shortened_link(link: str) -> str:
     if not validate_link(link):
         return "The provided link is not valid."
     try:
-        try:
-            with open("links.json", "r") as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            data = {}
+        data = read_json_file("links.json")
 
         shortened_id = generate_unique_link_id()
-        while shortened_id in data.keys():
-            shortened_id = generate_unique_link_id()
         data[shortened_id] = link
 
-        with open("links.json", "w") as f:
-            json.dump(data, f, indent=4)
+        write_to_json_file("links.json", data)
+
         result = f"Successfully generated shortened link: '{Config.SHORT_DOMAIN}{shortened_id}'"
 
     except Exception:
@@ -50,7 +69,7 @@ def generate_shortened_link(link: str) -> str:
 
 def main():
     print("Enter a URL to shorten (e.g., 'https://example.com'):")
-    link = input().strip()
+    link = input().strip().rstrip('/')
     print(generate_shortened_link(link))
 
 
