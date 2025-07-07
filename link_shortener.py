@@ -8,7 +8,7 @@ class Config():
     """A class for application configuration constants."""
     SHORT_DOMAIN = "https://shortlinkdomain.com/"
     LINK_PATTERN = re.compile(
-        r"^(https?:\/\/)?(www\.)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,24}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$"
+        r"^(https?://)?(www\.)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,24}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)$"
     )
 
 
