@@ -57,7 +57,7 @@ class LinkShortener:
                 with open(file, "w") as f:
                     json.dump(data, f, indent=4)
         except TimeoutError:
-            raise "Could not acquire lock."
+            raise RuntimeError("Could not acquire lock.")
 
     def generate_shortened_link(self) -> str:
         """Generates a shortened link if the input is valid, else returns None."""
