@@ -1,7 +1,7 @@
 import json
 import uuid
 import re
-from typing import Dict
+from typing import Dict, Tuple
 from filelock import FileLock
 
 
@@ -15,7 +15,7 @@ class Config:
 
 class LinkShortener:
     def __init__(self, link: str):
-        self.link = link
+        self.link = link if link.startswith(("https://", "http://")) else f"https://{link}"
 
     def validate_link(self) -> bool:
         """Validates a URL format (with http/https, optional www, and valid domain structure)."""
@@ -59,25 +59,26 @@ class LinkShortener:
         except TimeoutError:
             raise RuntimeError("Could not acquire lock.")
 
-    def generate_shortened_link(self) -> str:
-        """Generates a shortened link if the input is valid, else returns None."""
+    def generate_shortened_link(self) -> Tuple[bool, str]:
+        """Generates a shortened link if the input is valid, returns success (bool) and message(str)."""
+        success = False
         if not self.validate_link():
-            return "The provided link is not valid."
+            return False, "The provided link is not valid."
         try:
             data = self.read_json_file(Config.LINKS_PATH)
             existing_ids = set(data.keys())
 
             shortened_id = self.generate_unique_link_id(existing_ids)
-            data[shortened_id] = self.link if self.link.startswith(("https://", "http://")) else f"https://{self.link}"
-
+            data[shortened_id] = self.link
             self.write_to_json_file(Config.LINKS_PATH, data)
 
-            result = f"Successfully generated shortened link: '{Config.SHORT_DOMAIN}{shortened_id}'"
+            message = f"Successfully generated shortened link: '{Config.SHORT_DOMAIN}{shortened_id}'"
+            success = True
 
         except (TimeoutError, FileNotFoundError):
-            result = "Shortened link couldn't be generated."
+            message = "Shortened link couldn't be generated."
 
-        return result
+        return success, message
 
 
 def main():
