@@ -15,6 +15,7 @@ class Config:
 
 class LinkShortener:
     def __init__(self, link: str):
+        """Set object's link and normalize it (add https:// in the front if not added when passing)"""
         self.link = link if link.startswith(("https://", "http://")) else f"https://{link}"
 
     def validate_link(self) -> bool:
@@ -25,8 +26,12 @@ class LinkShortener:
     def generate_unique_link_id(existing_ids: set) -> str:
         """Generate a short, URL unique ID (8 chars)."""
         unique_link_id = uuid.uuid4().hex[:8]
-        while unique_link_id in existing_ids:
+        for _ in range(100):
             unique_link_id = uuid.uuid4().hex[:8]
+            if unique_link_id in existing_ids:
+                continue
+        if unique_link_id in existing_ids:
+            raise RuntimeError("Failed to generate unique ID")
         return unique_link_id
 
     @staticmethod
@@ -85,7 +90,8 @@ def main():
     print("Enter a URL to shorten (e.g., 'https://example.com'):")
     link = input().strip().rstrip('/')
     link_shortener = LinkShortener(link)
-    print(link_shortener.generate_shortened_link())
+    success, message = link_shortener.generate_shortened_link()
+    print("✅" if success else "❌", message)
 
 
 if __name__ == "__main__":
