@@ -1,22 +1,53 @@
-import json
 import uuid
 import re
-from typing import Dict, Tuple
-from filelock import FileLock
+import sqlite3
+from typing import Dict, Tuple, List, Optional
+import logging
+
+class Database:
+    def __init__(self, db_path="links.db"):
+        self.db_path = db_path
+        self._conn = sqlite3.connect(self.db_path) if db_path != ":memory:" else sqlite3.connect(":memory:")
+        self._initialize()
+
+    def _initialize(self):
+        cursor = self._conn.cursor()
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS links(
+        link_id VARCHAR(8) PRIMARY KEY,
+        original_url TEXT NOT NULL
+        )
+        """)
+        self._conn.commit()
+
+    def get_connection(self):
+        return self._conn
+
+    def get_links(self) -> List[Tuple[str]]:
+        cursor = self._conn.cursor()
+        cursor.execute("""
+        SELECT link_id FROM links
+        """)
+        return cursor.fetchall()
+
+    def add_link(self, link, original):
+        cursor = self._conn.cursor()
+        cursor.execute("INSERT INTO links (link_id, original_url) VALUES (?, ?)", (link, original))
+        self._conn.commit()
 
 
 class Config:
     """A class for application configuration constants."""
-    LINKS_PATH = "links.json"
-    SHORT_DOMAIN = "https://shortlinkdomain.com/"
+    DOMAIN = "https://shortlinkdomain.com/"
     DOMAIN_PATTERN = r"([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,24}"
     LINK_PATTERN = re.compile(rf"^(https?://)?(www\.)?{DOMAIN_PATTERN}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)$")
 
 
 class LinkShortener:
-    def __init__(self, link: str):
+    def __init__(self, link: str, db=None):
         """Set object's link and normalize it (add https:// in the front if not added when passing)"""
         self.link = link if link.startswith(("https://", "http://")) else f"https://{link}"
+        self.db = db if db else Database()
 
     def validate_link(self) -> bool:
         """Validates a URL format (with http/https, optional www, and valid domain structure)."""
@@ -25,65 +56,32 @@ class LinkShortener:
     @staticmethod
     def generate_unique_link_id(existing_ids: set) -> str:
         """Generate a short, URL unique ID (8 chars)."""
-        unique_link_id = uuid.uuid4().hex[:8]
         for _ in range(100):
             unique_link_id = uuid.uuid4().hex[:8]
-            if unique_link_id in existing_ids:
-                continue
-        if unique_link_id in existing_ids:
-            raise RuntimeError("Failed to generate unique ID")
-        return unique_link_id
+            if unique_link_id not in existing_ids:
+                return unique_link_id
+        raise RuntimeError("Failed to generate unique ID")
 
-    @staticmethod
-    def read_json_file(file: str) -> Dict[str, str]:
-        """Read JSON file with lock."""
-        try:
-            lock_path = f"{file}.lock"
-
-            lock = FileLock(lock_path)
-            with lock.acquire(timeout=10):
-                with open(file, "r") as f:
-                    data = json.load(f)
-        except FileNotFoundError:
-            data = {}
-        except TimeoutError:
-            raise RuntimeError("Could not acquire lock.")
-
-        return data
-
-    @staticmethod
-    def write_to_json_file(file: str, data: Dict[str, str]):
-        """Write to JSON file with lock"""
-        lock_path = f"{file}.lock"
-
-        lock = FileLock(lock_path)
-        try:
-            with lock.acquire(timeout=10):
-                with open(file, "w") as f:
-                    json.dump(data, f, indent=4)
-        except TimeoutError:
-            raise RuntimeError("Could not acquire lock.")
-
-    def generate_shortened_link(self) -> Tuple[bool, str]:
+    def generate_shortened_link(self) -> Optional[Tuple[bool, str]]:
         """Generates a shortened link if the input is valid, returns success (bool) and message(str)."""
         success = False
         if not self.validate_link():
-            return False, "The provided link is not valid."
+            return success, None
         try:
-            data = self.read_json_file(Config.LINKS_PATH)
-            existing_ids = set(data.keys())
+            links = self.db.get_links()
+            existing_ids = set(link[0] for link in links)
 
             shortened_id = self.generate_unique_link_id(existing_ids)
-            data[shortened_id] = self.link
-            self.write_to_json_file(Config.LINKS_PATH, data)
+            self.db.add_link(shortened_id, self.link)
 
-            message = f"Successfully generated shortened link: '{Config.SHORT_DOMAIN}{shortened_id}'"
+            link = f"{Config.DOMAIN}{shortened_id}"
             success = True
 
-        except (TimeoutError, FileNotFoundError):
-            message = "Shortened link couldn't be generated."
+        except Exception as e:
+            logging.info(f"[ERROR] {e}")
+            link = None
 
-        return success, message
+        return success, link
 
 
 def main():
