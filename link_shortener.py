@@ -4,6 +4,7 @@ import sqlite3
 from typing import Dict, Tuple, List, Optional
 import logging
 
+
 class Database:
     def __init__(self, db_path="links.db"):
         self.db_path = db_path
@@ -62,7 +63,7 @@ class LinkShortener:
                 return unique_link_id
         raise RuntimeError("Failed to generate unique ID")
 
-    def generate_shortened_link(self) -> Optional[Tuple[bool, str]]:
+    def generate_shortened_link(self) -> Tuple[bool, Optional[str]]:
         """Generates a shortened link if the input is valid, returns success (bool) and message(str)."""
         success = False
         if not self.validate_link():
@@ -77,8 +78,8 @@ class LinkShortener:
             link = f"{Config.DOMAIN}{shortened_id}"
             success = True
 
-        except Exception as e:
-            logging.info(f"[ERROR] {e}")
+        except sqlite3.OperationalError as e:
+            logging.error(f"[ERROR] {e}")
             link = None
 
         return success, link
