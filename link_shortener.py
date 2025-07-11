@@ -42,6 +42,7 @@ class Config:
     DOMAIN = "https://shortlinkdomain.com/"
     DOMAIN_PATTERN = r"([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,24}"
     LINK_PATTERN = re.compile(rf"^(https?://)?(www\.)?{DOMAIN_PATTERN}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)$")
+    DATABASE_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/links_db"
 
 
 class LinkShortener:
@@ -83,15 +84,3 @@ class LinkShortener:
             link = None
 
         return success, link
-
-
-def main():
-    print("Enter a URL to shorten (e.g., 'https://example.com'):")
-    link = input().strip().rstrip('/')
-    link_shortener = LinkShortener(link)
-    success, message = link_shortener.generate_shortened_link()
-    print("✅" if success else "❌", message)
-
-
-if __name__ == "__main__":
-    main()
